@@ -1,6 +1,6 @@
 from typing import List
-from uuid import uuid4
 
+from app.llm.base import LLMClient
 from app.schemas.job_workflow import (
     JobDescriptionInput,
     SkillExtractionResult,
@@ -17,13 +17,6 @@ def parse_job_description(
 ) -> JobDescriptionInput:
     """
     Parse raw job description text into a structured JobDescriptionInput.
-
-    This function is intentionally simple for now and assumes the raw text
-    is provided as-is by the user.
-
-    TODO:
-    - Add title and company extraction
-    - Add malformed input handling
     """
     return JobDescriptionInput(
         job_description_text=raw_text
@@ -32,25 +25,22 @@ def parse_job_description(
 
 def extract_required_skills(
     job_description: JobDescriptionInput,
+    llm: LLMClient,
 ) -> SkillExtractionResult:
     """
-    Extract required skills from a structured job description.
-
-    TODO:
-    - Replace placeholder logic with LLM-based extraction
-    - Add confidence calibration
-    - Add ambiguity detection
+    Extract required skills from a structured job description
+    using an injected LLM client.
     """
-    # Placeholder deterministic output
-    placeholder_skills = [
-        ExtractedSkill(name="Python", category="language", importance=0.9),
-        ExtractedSkill(name="Communication", category="soft skill", importance=0.6),
-    ]
+    raw_result = llm.extract_required_skills(
+        job_description.job_description_text
+    )
 
     return SkillExtractionResult(
-        extracted_skills=placeholder_skills,
-        confidence_score=0.3,
-        warnings=["Skill extraction uses placeholder logic"]
+        extracted_skills=[
+            ExtractedSkill(**skill) for skill in raw_result["skills"]
+        ],
+        confidence_score=raw_result.get("confidence", 0.0),
+        warnings=raw_result.get("warnings"),
     )
 
 
@@ -59,12 +49,6 @@ def load_resume(
 ) -> str:
     """
     Load and normalize resume content.
-
-    This tool keeps the resume as raw text for now.
-
-    TODO:
-    - Add document parsing (PDF, DOCX)
-    - Add section segmentation
     """
     return resume_text.strip()
 
@@ -75,10 +59,6 @@ def compare_resume_to_job(
 ) -> ResumeComparisonResult:
     """
     Compare resume content against extracted job skills.
-
-    TODO:
-    - Replace keyword matching with semantic comparison
-    - Improve alignment scoring logic
     """
     matched_skills: List[str] = []
     missing_skills: List[str] = []
@@ -104,68 +84,50 @@ def compare_resume_to_job(
 
 def suggest_resume_edits(
     comparison_result: ResumeComparisonResult,
+    llm: LLMClient,
 ) -> List[ResumeEditSuggestion]:
     """
-    Generate resume edit suggestions based on skill gaps.
-
-    TODO:
-    - Add context-aware rewriting
-    - Rank suggestions using job importance
+    Generate resume edit suggestions using an injected LLM client.
     """
-    suggestions: List[ResumeEditSuggestion] = []
+    raw_suggestions = llm.generate_resume_edit_suggestions(
+        comparison_result.missing_skills
+    )
 
-    for skill in comparison_result.missing_skills:
-        suggestions.append(
-            ResumeEditSuggestion(
-                skill=skill,
-                suggestion_text=f"Add experience or projects demonstrating {skill}.",
-                priority="high",
-            )
-        )
-
-    return suggestions
+    return [
+        ResumeEditSuggestion(**suggestion)
+        for suggestion in raw_suggestions
+    ]
 
 
 def generate_cover_letter_bullets(
     comparison_result: ResumeComparisonResult,
+    llm: LLMClient,
 ) -> List[CoverLetterBullet]:
     """
-    Generate tailored cover letter bullet points.
-
-    TODO:
-    - Replace template bullets with LLM-generated content
-    - Customize tone by company and role
+    Generate tailored cover letter bullets using an injected LLM client.
     """
-    bullets: List[CoverLetterBullet] = []
+    raw_bullets = llm.generate_cover_letter_bullets(
+        comparison_result.matched_skills
+    )
 
-    for skill in comparison_result.matched_skills:
-        bullets.append(
-            CoverLetterBullet(
-                bullet_text=f"Demonstrated hands-on experience with {skill}.",
-                related_skill=skill,
-            )
-        )
-
-    return bullets
+    return [
+        CoverLetterBullet(**bullet)
+        for bullet in raw_bullets
+    ]
 
 
 def generate_outreach_draft(
     job_title: str,
     company_name: str,
+    llm: LLMClient,
 ) -> OutreachDraft:
     """
-    Generate a recruiter or hiring manager outreach draft.
-
-    TODO:
-    - Personalize using job description context
-    - Add variations for cold vs warm outreach
+    Generate a recruiter or hiring manager outreach draft
+    using an injected LLM client.
     """
-    return OutreachDraft(
-        subject=f"Interest in {job_title} Opportunity",
-        intro=f"Hello, I hope you're doing well.",
-        body=(
-            f"I recently came across the {job_title} role at {company_name} "
-            "and wanted to express my interest."
-        ),
-        call_to_action="I would welcome the opportunity to connect and learn more.",
+    raw_draft = llm.generate_outreach_draft(
+        job_title=job_title,
+        company_name=company_name,
     )
+
+    return OutreachDraft(**raw_draft)
