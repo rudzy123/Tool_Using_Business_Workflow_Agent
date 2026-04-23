@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Workflow Approval</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 800px;
+      margin: 2rem auto;
+    }
+    pre {
+      background: #f4f4f4;
+      padding: 1rem;
+      overflow-x: auto;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      margin-right: 1rem;
+      margin-top: 1rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Workflow Approval</h1>
+
+  <p><strong>Run ID:</strong> {{ run_id }}</p>
+  <p><strong>Stage:</strong> {{ stage }}</p>
+
+  <h3>Generated Output</h3>
+  <pre>{{ output | tojson(indent=2) }}</pre>
+
+  <form method="post">
+    <button name="decision" value="approve">✅ Approve</button>
+    <button name="decision" value="reject">❌ Reject</button>
+  </form>
+</body>
+</html>
