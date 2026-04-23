@@ -10,17 +10,27 @@ from src.api.models import (
 
 router = APIRouter()
 
-# VERY IMPORTANT:
-# For now, we keep workflows in-memory.
-# This can later be replaced by Redis / DB.
+# ---------------------------------------------------------------------
+# In-memory workflow registry
+# NOTE: For demos and local use only.
+# Can be replaced with Redis / DB later.
+# ---------------------------------------------------------------------
 WORKFLOWS: dict[str, JobSearchWorkflow] = {}
+
+
+# ---------------------------------------------------------------------
+# Start a new workflow
+# ---------------------------------------------------------------------
 @router.post("/workflow/start", response_model=WorkflowResponse)
 def start_workflow(request: StartWorkflowRequest):
     workflow = JobSearchWorkflow()
+
     result = workflow.run(**request.model_dump())
 
+    # Register workflow for later approvals
     WORKFLOWS[workflow.run_id] = workflow
 
+    # If workflow pauses for approval
     if result.get("status") == "awaiting_approval":
         return WorkflowResponse(
             status="awaiting_approval",
@@ -29,12 +39,17 @@ def start_workflow(request: StartWorkflowRequest):
             output=result["output"],
         )
 
+    # Workflow completed without approvals
     return WorkflowResponse(
         status="completed",
         run_id=workflow.run_id,
         output=result,
     )
 
+
+# ---------------------------------------------------------------------
+# Approve a workflow stage and resume execution
+# ---------------------------------------------------------------------
 @router.post("/workflow/{run_id}/approve", response_model=WorkflowResponse)
 def approve_workflow_step(run_id: str, request: ApprovalRequest):
     workflow = WORKFLOWS.get(run_id)
@@ -48,20 +63,19 @@ def approve_workflow_step(run_id: str, request: ApprovalRequest):
         comments=request.comments,
     )
 
+    # Apply approval to the correct gate
     if request.stage == "resume_edit_suggestions":
         workflow.resume_edits_gate.approve(decision)
     elif request.stage == "outreach_draft":
         workflow.outreach_gate.approve(decision)
     else:
-        raise HTTPException(status_code=400, detail="Unknown approval stage")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown approval stage: {request.stage}",
+        )
 
-    # Resume workflow
-    result = workflow.run(
-        job_description_text="",
-        resume_text="",
-        job_title="",
-        company_name="",
-    )
+    # Resume workflow using stored inputs
+    result = workflow.run(**workflow._inputs)
 
     if result.get("status") == "awaiting_approval":
         return WorkflowResponse(
