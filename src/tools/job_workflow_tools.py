@@ -1,7 +1,7 @@
 from typing import List
 
-from llm.base import LLMClient
-from app.schemas.job_workflow import (
+from src.llm.base import LLMClient
+from src.schemas.job_workflow import (
     JobDescriptionInput,
     SkillExtractionResult,
     ExtractedSkill,

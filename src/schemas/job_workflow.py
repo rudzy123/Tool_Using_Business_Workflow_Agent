@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from pydantic import BaseModel, Field
 
@@ -135,6 +135,7 @@ class OutreachDraft(BaseModel):
     )
 
 
+
 class WorkflowRunMetadata(BaseModel):
     """
     Metadata for a single workflow execution.
@@ -144,7 +145,7 @@ class WorkflowRunMetadata(BaseModel):
         description="Unique identifier for the workflow run"
     )
     timestamp: datetime = Field(
-        default_factory=datetime.utcnow,
+        default_factory=lambda: datetime.now(timezone.utc),
         description="UTC timestamp when the run was executed"
     )
     status: str = Field(
@@ -157,3 +158,4 @@ class WorkflowRunMetadata(BaseModel):
         le=1.0,
         description="Overall confidence score for the workflow output"
     )
+

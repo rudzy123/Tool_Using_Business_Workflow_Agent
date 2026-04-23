@@ -6,6 +6,7 @@ from src.llm.mock_llm import MockLLMClient
 # from src.llm.chat_llm import ChatLLMClient
 
 from src.traces.recorder import TraceRecorder
+from datetime import datetime
 
 from src.tools.job_workflow_tools import (
     parse_job_description,
@@ -51,6 +52,7 @@ class JobSearchWorkflow:
         # Trace persistence
         self.recorder = TraceRecorder()
 
+    
     def _serialize_output(self, output: Dict[str, Any]) -> Dict[str, Any]:
         """
         Convert workflow output into a JSON-serializable structure.
@@ -58,7 +60,9 @@ class JobSearchWorkflow:
 
         def serialize(value: Any):
             if hasattr(value, "model_dump"):
-                return value.model_dump()
+                return serialize(value.model_dump())
+            if isinstance(value, datetime):
+                return value.isoformat()
             if isinstance(value, list):
                 return [serialize(v) for v in value]
             if isinstance(value, dict):
