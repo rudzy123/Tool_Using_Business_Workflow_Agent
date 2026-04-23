@@ -1,7 +1,7 @@
 from typing import Dict, Any, List
 from uuid import uuid4
 
-from app.llm.mock_llm import MockLLMClient
+from llm.mock_llm import MockLLMClient
 # Later, you can swap this for:
 # from app.llm.chat_llm import ChatLLMClient
 

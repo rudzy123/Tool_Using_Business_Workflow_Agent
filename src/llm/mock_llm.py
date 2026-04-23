@@ -14,7 +14,7 @@ Replace with real LLM calls before deploying to users.
 
 from typing import List
 
-from app.llm.base import LLMClient
+from llm.base import LLMClient
 
 
 class MockLLMClient(LLMClient):

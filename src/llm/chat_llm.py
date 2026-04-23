@@ -2,7 +2,7 @@ import json
 import os
 from typing import List, Callable, Any, Optional
 
-from app.llm.base import LLMClient
+from llm.base import LLMClient
 
 
 class ChatLLMClient(LLMClient):
