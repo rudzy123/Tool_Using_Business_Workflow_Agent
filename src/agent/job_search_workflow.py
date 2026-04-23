@@ -7,6 +7,8 @@ from src.llm.mock_llm import MockLLMClient
 
 from src.traces.recorder import TraceRecorder
 from datetime import datetime
+from src.workflows.approval_gate import ApprovalGate
+from src.schemas.approval import ApprovalDecision
 
 from src.tools.job_workflow_tools import (
     parse_job_description,
@@ -51,6 +53,11 @@ class JobSearchWorkflow:
 
         # Trace persistence
         self.recorder = TraceRecorder()
+        
+        # Human-in-the-loop approval gates
+        self.resume_edits_gate = ApprovalGate(stage="resume_edit_suggestions")
+        self.outreach_gate = ApprovalGate(stage="outreach_draft")
+
 
     
     def _serialize_output(self, output: Dict[str, Any]) -> Dict[str, Any]:
@@ -113,11 +120,20 @@ class JobSearchWorkflow:
         self.trace["resume_comparison"] = comparison_result
 
         # Step 5: Suggest resume edits
+        
         resume_edits: List[ResumeEditSuggestion] = suggest_resume_edits(
             comparison_result=comparison_result,
             llm=self.llm,
         )
         self.trace["resume_edits"] = resume_edits
+
+        if self.resume_edits_gate.requires_approval():
+            return {
+                "status": "awaiting_approval",
+                "stage": "resume_edit_suggestions",
+                "run_id": self.run_id,
+                "output": resume_edits,
+            }
 
         # Step 6: Generate cover letter bullets
         cover_letter_bullets: List[CoverLetterBullet] = generate_cover_letter_bullets(
@@ -127,12 +143,21 @@ class JobSearchWorkflow:
         self.trace["cover_letter_bullets"] = cover_letter_bullets
 
         # Step 7: Generate outreach draft
+
         outreach_draft: OutreachDraft = generate_outreach_draft(
             job_title=job_title,
             company_name=company_name,
             llm=self.llm,
         )
         self.trace["outreach_draft"] = outreach_draft
+
+        if self.outreach_gate.requires_approval():
+            return {
+                "status": "awaiting_approval",
+                "stage": "outreach_draft",
+                "run_id": self.run_id,
+                "output": outreach_draft,
+            }
 
         # Metadata
         metadata = WorkflowRunMetadata(
