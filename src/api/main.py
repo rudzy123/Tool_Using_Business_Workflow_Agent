@@ -3,6 +3,7 @@ from fastapi import FastAPI
 
 from src.api.routes import router as api_router
 from src.api.ui import router as ui_router
+from src.persistence.migrations import init_db
 
 app = FastAPI(
     title="Job Search Workflow Agent",
@@ -16,6 +17,11 @@ def root():
         "docs": "/docs",
         "ui": "/ui/workflow/{run_id}"
     }
+
+@app.on_event("startup")
+def startup():
+    init_db("workflows.db")
+
 
 app.include_router(api_router)
 app.include_router(ui_router)
