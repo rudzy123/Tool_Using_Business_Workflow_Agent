@@ -38,14 +38,14 @@ Human reviewers must explicitly approve high‑risk outputs before the workflow 
 
 ## 🗺️ Architecture (High Level)
 
- ┌──────────────────┐
+            ┌──────────────────┐
             │   FastAPI API    │
             │  + Web UI        │
             └────────┬─────────┘
                      │
                      ▼
         ┌──────────────────────────┐
-        │   JobSearchWorkflow       │
+        │   JobSearchWorkflow      │
         │  (Orchestration Layer)   │
         └───────┬─────────┬────────┘
                 │         │
@@ -60,7 +60,6 @@ Human reviewers must explicitly approve high‑risk outputs before the workflow 
     │  • SQLite (workflow state) │
     │  • JSON Traces (runs)      │
     └────────────────────────────┘
----
 
 ## 🔐 Human‑in‑the‑Loop Design
 
@@ -106,7 +105,7 @@ Tests operate at workflow boundaries and do not depend on UI or API layers.
 
 ### Setup
 
-```bash
+bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
