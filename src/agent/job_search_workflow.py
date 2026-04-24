@@ -1,8 +1,13 @@
+
 from typing import Dict, Any, List, Optional
 from uuid import uuid4
 from datetime import datetime
 
 from src.llm.mock_llm import MockLLMClient
+
+from src.persistence.repository import WorkflowRepository
+from src.persistence.models import PersistedWorkflow
+
 # Later you can swap with:
 # from src.llm.chat_llm import ChatLLMClient
 
@@ -39,6 +44,7 @@ class JobSearchWorkflow:
     - Pause at human-in-the-loop approval gates
     - Resume safely after approval
     - Capture and persist traces
+    - Persist workflow state for recovery
     - Return structured outputs
 
     This class intentionally contains:
@@ -58,8 +64,11 @@ class JobSearchWorkflow:
         self.llm = MockLLMClient()
         self.trace["llm_type"] = self.llm.__class__.__name__
 
-        # Trace persistence
+        # Trace persistence (JSON traces)
         self.recorder = TraceRecorder()
+
+        # Durable persistence (SQLite)
+        self.repo = WorkflowRepository()
 
         # Human-in-the-loop approval gates
         self.resume_edits_gate = ApprovalGate(stage="resume_edit_suggestions")
@@ -86,6 +95,21 @@ class JobSearchWorkflow:
             return value
 
         return serialize(output)
+
+    def _persist_state(self, status: str) -> None:
+        """
+        Persist workflow state for durability across restarts.
+        """
+        self.repo.save(
+            PersistedWorkflow(
+                run_id=self.run_id,
+                status=status,
+                inputs=self._inputs,
+                trace=self._serialize_output(self.trace),
+                resume_edits_approved=self.resume_edits_gate.is_approved(),
+                outreach_approved=self.outreach_gate.is_approved(),
+            )
+        )
 
     # ---------------------------------------------------------------------
     # Public API
@@ -166,6 +190,7 @@ class JobSearchWorkflow:
         self.trace["resume_edits"] = resume_edits
 
         if self.resume_edits_gate.requires_approval():
+            self._persist_state("awaiting_approval")
             return {
                 "status": "awaiting_approval",
                 "stage": "resume_edit_suggestions",
@@ -193,6 +218,7 @@ class JobSearchWorkflow:
         self.trace["outreach_draft"] = outreach_draft
 
         if self.outreach_gate.requires_approval():
+            self._persist_state("awaiting_approval")
             return {
                 "status": "awaiting_approval",
                 "stage": "outreach_draft",
@@ -220,8 +246,11 @@ class JobSearchWorkflow:
             "trace": self.trace,
         }
 
-        # Persist run
+        # Persist trace artifact (JSON)
         serialized_output = self._serialize_output(output)
         self.recorder.save_run(self.run_id, serialized_output)
+
+        # Persist durable state (SQLite)
+        self._persist_state("completed")
 
         return output
