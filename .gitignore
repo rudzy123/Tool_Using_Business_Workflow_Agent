@@ -6,6 +6,23 @@ __pycache__/
 # C extensions
 *.so
 
+# Local env
+.env
+.venv
+ENV/
+venv/
+
+# -------------------------------
+# Workflow runtime artifacts
+# -------------------------------
+
+# SQLite workflow state
+workflows.db
+*.db
+
+# Generated workflow traces
+src/traces/runs/
+
 # Distribution / packaging
 .Python
 env/
