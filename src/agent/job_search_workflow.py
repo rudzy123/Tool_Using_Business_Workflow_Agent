@@ -7,6 +7,7 @@ from src.llm.mock_llm import MockLLMClient
 
 from src.persistence.repository import WorkflowRepository
 from src.persistence.models import PersistedWorkflow
+from src.schemas.approval import ApprovalDecision
 
 # Later you can swap with:
 # from src.llm.chat_llm import ChatLLMClient
@@ -74,6 +75,41 @@ class JobSearchWorkflow:
         self.resume_edits_gate = ApprovalGate(stage="resume_edit_suggestions")
         self.outreach_gate = ApprovalGate(stage="outreach_draft")
 
+    @classmethod
+    def from_persisted(cls, persisted: PersistedWorkflow) -> "JobSearchWorkflow":
+        """
+        Rehydrate a workflow from persisted state WITHOUT re-executing steps.
+        Used on application startup (Day 7).
+        """
+        wf = cls()
+
+        # Restore identity and state
+        wf.run_id = persisted.run_id
+        wf._inputs = persisted.inputs
+        wf.trace = persisted.trace
+
+        # Restore approval gate decisions
+        if persisted.resume_edits_approved:
+            wf.resume_edits_gate.approve(
+                ApprovalDecision(
+                    stage="resume_edit_suggestions",
+                    approved=True,
+                    reviewer="system",
+                    comments="Restored from persistence",
+                )
+            )
+
+        if persisted.outreach_approved:
+            wf.outreach_gate.approve(
+                ApprovalDecision(
+                    stage="outreach_draft",
+                    approved=True,
+                    reviewer="system",
+                    comments="Restored from persistence",
+                )
+            )
+
+        return wf
     # ---------------------------------------------------------------------
     # Internal helpers
     # ---------------------------------------------------------------------

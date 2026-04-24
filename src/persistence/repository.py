@@ -1,7 +1,7 @@
-#save/load workflows
+# save/load/list workflows
 import json
 import sqlite3
-from typing import Optional
+from typing import Optional, List
 
 from src.persistence.models import PersistedWorkflow
 
@@ -54,3 +54,29 @@ class WorkflowRepository:
             resume_edits_approved=bool(row[4]),
             outreach_approved=bool(row[5]),
         )
+
+    def list_all(self) -> List[PersistedWorkflow]:
+        """
+        Load all persisted workflows (used on app startup).
+        """
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        rows = cursor.execute("SELECT * FROM workflows").fetchall()
+        conn.close()
+
+        workflows: List[PersistedWorkflow] = []
+
+        for row in rows:
+            workflows.append(
+                PersistedWorkflow(
+                    run_id=row[0],
+                    status=row[1],
+                    inputs=json.loads(row[2]),
+                    trace=json.loads(row[3]),
+                    resume_edits_approved=bool(row[4]),
+                    outreach_approved=bool(row[5]),
+                )
+            )
+
+        return workflows
