@@ -111,10 +111,10 @@ source .venv/bin/activate
 pip install -r requirements.txt
 
 Run the API
-Shellpython -m uvicorn src.api.main:app --reloadShow more lines
+Shell
+python -m uvicorn src.api.main:app --reload
 
-API docs: http://localhost:8000/docs
-Approval UI: http://localhost:8000/ui/workflow/{run_id}
+Show more lines
 
 API docs: http://localhost:8000/docs
 Approval UI: http://localhost:8000/ui/workflow/{run_id}
